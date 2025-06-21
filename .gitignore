@@ -3,6 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+yolo11n.pt
+
 # Distribution / packaging
 .Python
 build/

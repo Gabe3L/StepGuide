@@ -5,9 +5,8 @@ class VideoProcessor:
     def __init__(self) -> None:
         pass
 
-    def main(self):
-        model_path = "yolo11n.pt"
-        model = YOLO(model_path, task='detect')
+    def process_video(self):
+        model = YOLO("yolo11n.pt", task='detect')
 
         cap = cv2.VideoCapture(0)
 
@@ -29,4 +28,4 @@ class VideoProcessor:
 
 if __name__ == "__main__":
     vp = VideoProcessor()
-    vp.main()
+    vp.process_video()
