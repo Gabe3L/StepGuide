@@ -17,16 +17,14 @@ class OCR:
             raise RuntimeError("Unable to open webcam.")
 
     def run(self):
-        while True:
-            ret, frame = self.cap.read()
-            if not ret:
-                print("Failed to grab frame.")
-                break
+        ret, frame = self.cap.read()
+        if not ret:
+            print("Failed to grab frame.")
 
 
-            text = self.perform_ocr(frame)
-            if text:
-                print(text.strip())
+        text = self.perform_ocr(frame)
+        if text:
+            print(text.strip())
 
         self.cleanup()
 
