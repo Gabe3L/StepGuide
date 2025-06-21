@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from numpy.typing import NDArray
 from typing import List
 
 ###############################################################
@@ -11,7 +12,7 @@ class VideoDisplay:
         cv2.imshow(window_name, frame)
 
     @staticmethod
-    def annotate_frame(frame: np.ndarray, box: List[int]) -> np.ndarray:
+    def annotate_frame(frame: np.ndarray, box: np.ndarray) -> np.ndarray:
         """Annotate the frame with bounding boxes and labels."""
         return cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), (0, 0, 0), 2)
 

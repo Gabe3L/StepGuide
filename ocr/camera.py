@@ -1,8 +1,13 @@
+import os
 import cv2
 import easyocr
 
+from logs.logging_setup import setup_logger
+
 class OCR:
     def __init__(self):
+        file_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.logger = setup_logger(file_name)
         self.lang = ['en']
         self.cap: cv2.VideoCapture = cv2.VideoCapture(0)
         self.reader = easyocr.Reader(self.lang, gpu=False)

@@ -1,7 +1,8 @@
 import cv2
 import asyncio
 import numpy as np
-from typing import Optional, List, Tuple
+from numpy.typing import NDArray
+from typing import Optional, List, Tuple, Sequence
 
 from video.detector import YOLODetector
 from video.display import VideoDisplay
@@ -28,7 +29,7 @@ class VideoProcessor:
 
         return frame
 
-    def most_confident_box(self, boxes: List[List[int]], confidences: List[float], class_ids: List[int]) -> Optional[Tuple[List[int], int]]:
+    def most_confident_box(self, boxes: NDArray[np.int32], confidences: NDArray[np.float32], class_ids: NDArray[np.int32]) -> Optional[Tuple[np.ndarray, int]]:
         if not confidences:
             return None
 

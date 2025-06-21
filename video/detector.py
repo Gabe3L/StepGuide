@@ -1,8 +1,11 @@
+import os
+import numpy as np
 from typing import Tuple, List
 
 import torch
-import numpy as np
 from ultralytics import YOLO
+
+from logs.logging_setup import setup_logger
 
 ###############################################################
 
@@ -12,11 +15,13 @@ CONFIDENCE_THRESHOLD: float = 0.5
 
 class YOLODetector:
     def __init__(self) -> None:
+        file_name = os.path.splitext(os.path.basename(__file__))[0]
+        self.logger = setup_logger(file_name)
         self.device: torch.device = torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
-        self.model: YOLO = YOLO("video\\train\\weights\\best.engine" if torch.cuda.is_available(
-        ) else "video\\train\\weights\\best.onnx", task='detect')
-        self.confidence_threshold: float = CONFIDENCE_THRESHOLD
+        self.model: YOLO = YOLO("video/train/dataset.yaml" if torch.cuda.is_available(
+        ) else "yolo11n.pt", task='detect')
+        self.logger.info("Loaded CV model.")
 
     def detect(self, frame: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         with torch.no_grad():
@@ -32,7 +37,7 @@ class YOLODetector:
             x1, y1, x2, y2 = map(int, box.xyxy[0].cpu().numpy())
             confidence: float = float(box.conf[0])
 
-            if confidence >= self.confidence_threshold:
+            if confidence >= CONFIDENCE_THRESHOLD:
                 boxes.append([x1, y1, x2, y2])
                 confidences.append(confidence)
                 class_ids.append(int(box.cls[0]))
