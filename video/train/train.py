@@ -4,7 +4,7 @@ from ultralytics import YOLO
 def main():
     best_device = 'mps' if torch.mps.is_available() else 'cuda' if torch.cuda.is_available() else 'cpu'
 
-    model = YOLO("yolo11m.pt").half()
+    model = YOLO("yolo11n.pt").half()
 
     model.train(
         device=best_device,
