@@ -1,9 +1,13 @@
 import os
-import asyncio
+import time
 from queue import Queue, Empty
-from typing import Dict, Optional
+from typing import Dict, Optional, Callable
 from threading import Thread, Event
 
+import cv2
+from cv2.typing import MatLike
+
+from ocr.ocr import OCR
 from tts.tts import TextToSpeech
 from video.processor import VideoProcessor
 
@@ -15,10 +19,26 @@ class CommandScheduler:
     def __init__(self) -> None:
         file_name = os.path.splitext(os.path.basename(__file__))[0]
         self.logger = setup_logger(file_name)
-        self.camera = VideoProcessor()
+        self.ocr = OCR()
+        self.object_detection = VideoProcessor()
         self.tts = TextToSpeech()
+        self.workers: Dict[str, Callable] = {
+            "ocr": self.ocr_handler,
+            "tts": self.speech_handler,
+            "object_detection": self.object_detection_handler
+        }
+        self.cap = cv2.VideoCapture(0)
 
-    async def speech_handler(self, stop_event: Event, speech_queue: Queue) -> None:
+    def ocr_handler(self, stop_event: Event, speech_queue: Queue) -> None:
+        while not stop_event.is_set():
+            try:
+                request: Optional[str] = self.ocr.read(self.get_frame())
+            except Empty:
+                pass
+            except Exception as e:
+                self.logger.error(f'An error occured with audio processing: {e}')
+
+    def speech_handler(self, stop_event: Event, speech_queue: Queue) -> None:
         while not stop_event.is_set():
             try:
                 request: Optional[str] = speech_queue.get(timeout=0.5)
@@ -29,93 +49,54 @@ class CommandScheduler:
             except Exception as e:
                 self.logger.error(f'An error occured with audio processing: {e}')
 
-    async def camera_handler(self, stop_event: Event, speech_queue: Queue) -> None:
-        cap = self.camera.get_video_feed()
-        if not cap or cap.isOpened():
-            return
-
+    def object_detection_handler(self, stop_event: Event, speech_queue: Queue) -> None:
         while not stop_event.is_set():
             try:
-                self.camera.process_video_feed(cap)
+                self.object_detection.process_video_feed(self.get_frame())
             except Empty:
                 pass
             except Exception as e:
                 self.logger.error(f'An error occured with audio processing: {e}')
-                
-    def get_worker(self, name: str):
-        return {
-            "text_to_speech": self.speech_handler,
-            "camera": self.camera_handler
-        }.get(name, None)
-    
-    def _run_async_worker(self, coro_func, stop_event: Event, speech_queue: Queue) -> None:
-        try:
-            asyncio.run(coro_func(stop_event, speech_queue))
-        except Exception as e:
-            self.logger.error(f'Async worker failed: {e}')
+
+    def get_frame(self) -> Optional[MatLike]:
+        ret, frame = self.cap.read()
+        if ret:
+            return None
+        return frame
 
     def mainloop(self) -> None:
+        stop_event = Event()
+        speech_queue: Queue = Queue()
+        thread_manager = ThreadManager(self.workers, self.logger)
+        
+        thread_manager.start_all_threads(stop_event, speech_queue)
+
+        self.logger.info("System running. Press Ctrl+C to stop.")
         try:
-            stop_event = Event()
-            speech_queue: Queue = Queue()
-            thread_manager = ThreadManager(self)
-            def start_thread(name: str, speech_queue: Queue):
-                if name in thread_manager.threads and thread_manager.threads[name].is_alive():
-                    self.logger.info(f"Thread '{name}' is already running.")
-                    return
-
-                if thread_manager.stop_event is None:
-                    self.logger.error("Stop event not initialized.")
-                    return
-
-                target = self.get_worker(name)
-                if not target:
-                    self.logger.error(f"No such thread worker defined for: '{name}'")
-                    return
-
-                thread = Thread(
-                    target=self._run_async_worker,
-                    args=(target, stop_event, speech_queue),
-                    name=name
-                )
-                thread.start()
-                thread_manager.threads[name] = thread
-                self.logger.info(f"Thread '{name}' started.")
-
-            thread_manager.start_thread = start_thread
-            thread_manager.start_all_threads(stop_event, speech_queue)
-
-            self.logger.info("System running. Press Ctrl+C to stop.")
             while not stop_event.is_set():
-                try:
-                    ...
-                except KeyboardInterrupt:
-                    self.logger.info("Shutdown signal received.")
-                    stop_event.set()
-                    break
-                except Exception as e:
-                    self.logger.error(f"Unhandled exception in main loop: {e}")
-                    stop_event.set()
-                    break
-
-            thread_manager.close_all_threads()
-
+                time.sleep(0.01)
+        except KeyboardInterrupt:
+            self.logger.info("Shutdown signal received.")
+            stop_event.set()
         except Exception as e:
-            self.logger.error(f'Exception in mainloop: {e}')       
+            self.logger.error(f"Unhandled exception in main loop: {e}")
+            stop_event.set()
+
+        thread_manager.close_all_threads()   
 
 class ThreadManager:
-    def __init__(self, command_scheduler: CommandScheduler) -> None:
-        self.command_scheduler = command_scheduler
-        self.logger = self.command_scheduler.logger
+    def __init__(self, worker_funcs: Dict[str, Callable], logger) -> None:
+        self.logger = logger
+        self.worker_funcs = worker_funcs
         self.threads: Dict[str, Thread] = {}
         self.stop_event: Optional[Event] = None
 
-    def start_all_threads(self, stop_event: Event, speech_queue):
+    def start_all_threads(self, stop_event: Event, speech_queue) -> None:
         self.stop_event = stop_event
-        for name in ["text_to_speech", "camera"]:
+        for name in ["ocr", "tts", "object_detection"]:
             self.start_thread(name, speech_queue)
 
-    def close_all_threads(self):
+    def close_all_threads(self) -> None:
         if self.stop_event:
             self.stop_event.set()
 
@@ -126,7 +107,7 @@ class ThreadManager:
         self.threads.clear()
         self.logger.info("All threads stopped.")
 
-    def start_thread(self, name: str, speech_queue: Queue):
+    def start_thread(self, name: str, speech_queue: Queue) -> None:
         if name in self.threads and self.threads[name].is_alive():
             self.logger.info(f"Thread '{name}' is already running.")
             return
@@ -135,7 +116,7 @@ class ThreadManager:
             self.logger.error("Stop event not initialized.")
             return
 
-        target = self.command_scheduler.get_worker(name)
+        target = self.worker_funcs.get(name)
         if not target:
             self.logger.error(f"No such thread worker defined for: '{name}'")
             return

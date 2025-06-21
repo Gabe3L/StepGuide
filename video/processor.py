@@ -1,8 +1,9 @@
-import cv2
-import asyncio
 import numpy as np
 from numpy.typing import NDArray
-from typing import Optional, List, Tuple, Sequence
+from typing import Optional, Tuple
+
+import cv2
+from cv2.typing import MatLike
 
 from video.detector import YOLODetector
 from video.display import VideoDisplay
@@ -19,7 +20,7 @@ class VideoProcessor:
     def __init__(self) -> None:
         self.model = YOLODetector()
 
-    def transform_frame(self, frame: np.ndarray) -> np.ndarray:
+    def transform_frame(self, frame: MatLike) -> MatLike:
         if ROTATE_IMAGE:
             frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         if FLIP_IMAGE_HORIZONTALLY:
@@ -38,15 +39,11 @@ class VideoProcessor:
         label = class_ids[max_index]
 
         return box, label
-    
-    def get_video_feed(self) -> Optional[cv2.VideoCapture]:
-        return cv2.VideoCapture(0)
 
-    def process_video_feed(self, cap: cv2.VideoCapture):
-        ret, frame = cap.read()
-        if not ret:
+    def process_video_feed(self, frame: MatLike) -> bool:
+        if not frame:
             return False
-
+        
         frame = self.transform_frame(frame)
 
         boxes, confidences, labels = self.model.detect(frame)
@@ -65,7 +62,7 @@ class VideoProcessor:
 
 if __name__ == "__main__":
     vp = VideoProcessor()
-    cap = vp.get_video_feed()
+    cap = cv2.VideoCapture(0)
     if cap is not None and cap.isOpened():
         while True:
             if not vp.process_video_feed(cap):
