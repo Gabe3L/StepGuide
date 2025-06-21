@@ -13,8 +13,6 @@ class OCR:
         self.reader = easyocr.Reader(self.lang, gpu=False)
 
     def initialize_camera(self):
-        # self.cap = 
-
         if not self.cap.isOpened():
             raise RuntimeError("Unable to open webcam.")
 
@@ -29,10 +27,6 @@ class OCR:
             text = self.perform_ocr(frame)
             if text:
                 print(text.strip())
-            
-            user_input = input("Press Enter to test, or type 'q' to quit: ")
-            if user_input.lower() == 'q':
-                break
 
         self.cleanup()
 
@@ -43,6 +37,8 @@ class OCR:
     def cleanup(self):
         if self.cap:
             self.cap.release()
+        cv2.destroyAllWindows()
+
 
 
 if __name__ == "__main__":
