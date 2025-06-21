@@ -1,27 +1,32 @@
 from ultralytics import YOLO
 import cv2
 
-def main():
-    model_path = "yolo11n.pt"
-    model = YOLO(model_path, task='detect')
+class VideoProcessor:
+    def __init__(self) -> None:
+        pass
 
-    cap = cv2.VideoCapture(0)
+    def main(self):
+        model_path = "yolo11n.pt"
+        model = YOLO(model_path, task='detect')
 
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
+        cap = cv2.VideoCapture(0)
 
-        results = model(frame)
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        annotated_frame = results[0].plot()
+            results = model(frame)
 
-        cv2.imshow("YOLO Detection", annotated_frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+            annotated_frame = results[0].plot()
 
-    cap.release()
-    cv2.destroyAllWindows()
+            cv2.imshow("YOLO Detection", annotated_frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+        cap.release()
+        cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    main()
+    vp = VideoProcessor()
+    vp.main()
