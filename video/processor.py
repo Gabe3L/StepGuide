@@ -42,32 +42,35 @@ class VideoProcessor:
     def get_video_feed(self) -> Optional[cv2.VideoCapture]:
         return cv2.VideoCapture(0)
 
-    async def process_video_feed(self, cap: cv2.VideoCapture):
-        if cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                return
+    def process_video_feed(self, cap: cv2.VideoCapture):
+        ret, frame = cap.read()
+        if not ret:
+            return False
 
-            frame = self.transform_frame(frame)
+        frame = self.transform_frame(frame)
 
-            boxes, confidences, class_ids = self.model.detect(frame)
-            detection = self.most_confident_box(boxes.tolist(), confidences.tolist(), class_ids.tolist())
-            box, label = detection if detection else (None, None)
+        boxes, confidences, labels = self.model.detect(frame)
 
-            if box is not None and label is not None:
+        for i, box in enumerate(boxes):
+            if confidences[i] > 0.4:
                 frame = VideoDisplay.annotate_frame(frame, box)
 
-            cv2.imshow("Detections", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                return
-
-        cap.release()
-        cv2.destroyAllWindows()
+        cv2.imshow("Detections", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            return False
+        
+        return True
 
 ###############################################################
 
 if __name__ == "__main__":
     vp = VideoProcessor()
     cap = vp.get_video_feed()
+    if cap is not None and cap.isOpened():
+        while True:
+            if not vp.process_video_feed(cap):
+                break
+
     if cap:
-        asyncio.run(vp.process_video_feed(cap))
+        cap.release()
+    cv2.destroyAllWindows()

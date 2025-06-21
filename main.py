@@ -36,7 +36,7 @@ class CommandScheduler:
 
         while not stop_event.is_set():
             try:
-                await self.camera.process_video_feed(cap)
+                self.camera.process_video_feed(cap)
             except Empty:
                 pass
             except Exception as e:
