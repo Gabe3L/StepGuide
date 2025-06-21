@@ -1,31 +1,72 @@
-from ultralytics import YOLO
 import cv2
+import asyncio
+import numpy as np
+from typing import Optional, List, Tuple
+
+from video.detector import YOLODetector
+from video.display import VideoDisplay
+
+###############################################################
+
+ROTATE_IMAGE: bool = False
+FLIP_IMAGE_HORIZONTALLY: bool = False
+FLIP_IMAGE_VERTICALLY: bool = False
+
+###############################################################
 
 class VideoProcessor:
     def __init__(self) -> None:
-        pass
+        self.model = YOLODetector()
 
-    def process_video(self):
-        model = YOLO("yolo11n.pt", task='detect')
+    def transform_frame(self, frame: np.ndarray) -> np.ndarray:
+        if ROTATE_IMAGE:
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+        if FLIP_IMAGE_HORIZONTALLY:
+            frame = cv2.flip(frame, 1)
+        if FLIP_IMAGE_VERTICALLY:
+            frame = cv2.flip(frame, 0)
 
-        cap = cv2.VideoCapture(0)
+        return frame
 
-        while cap.isOpened():
+    def most_confident_box(self, boxes: List[List[int]], confidences: List[float], class_ids: List[int]) -> Optional[Tuple[List[int], int]]:
+        if not confidences:
+            return None
+
+        max_index = np.argmax(confidences)
+        box = boxes[max_index]
+        label = class_ids[max_index]
+
+        return box, label
+    
+    def get_video_feed(self) -> Optional[cv2.VideoCapture]:
+        return cv2.VideoCapture(0)
+
+    async def process_video_feed(self, cap: cv2.VideoCapture):
+        if cap.isOpened():
             ret, frame = cap.read()
             if not ret:
-                break
+                return
 
-            results = model(frame)
+            frame = self.transform_frame(frame)
 
-            annotated_frame = results[0].plot()
+            boxes, confidences, class_ids = self.model.detect(frame)
+            detection = self.most_confident_box(boxes.tolist(), confidences.tolist(), class_ids.tolist())
+            box, label = detection if detection else (None, None)
 
-            cv2.imshow("YOLO Detection", annotated_frame)
+            if box is not None and label is not None:
+                frame = VideoDisplay.annotate_frame(frame, box)
+
+            cv2.imshow("Detections", frame)
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                return
 
         cap.release()
         cv2.destroyAllWindows()
 
+###############################################################
+
 if __name__ == "__main__":
     vp = VideoProcessor()
-    vp.process_video()
+    cap = vp.get_video_feed()
+    if cap:
+        asyncio.run(vp.process_video_feed(cap))
