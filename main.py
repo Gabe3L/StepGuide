@@ -1,5 +1,5 @@
 from tts.tts import TextToSpeech
-from video.processor import 
+from video.processor import VideoProcessor
 
 from typing import Dict
 
