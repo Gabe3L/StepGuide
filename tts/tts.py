@@ -2,8 +2,10 @@ import os
 import time
 import logging
 import numpy as np
-logging.getLogger(
-    "torch.distributed.elastic.multiprocessing.redirects").setLevel(logging.ERROR)
+
+logging.getLogger("torch.distributed.elastic.multiprocessing.redirects").setLevel(
+    logging.ERROR
+)
 
 import torch
 from TTS.api import TTS
@@ -23,13 +25,13 @@ class TextToSpeech:
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
         self.tts = TTS(
-            model_name="tts_models/en/ljspeech/tacotron2-DDC",
-            progress_bar=True).to(device)
+            model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=True
+        ).to(device)
 
     def speak(self, text):
         try:
-            if not text.strip().endswith(('.', '?', '!')):
-                text += '.'
+            if not text.strip().endswith((".", "?", "!")):
+                text += "."
 
             waveform_list = self.tts.tts(text)
             waveform = np.array(waveform_list, dtype=np.float32)
@@ -41,12 +43,13 @@ class TextToSpeech:
 
     def play_audio(self, waveform, sample_rate):
         try:
-            if waveform.dtype != np.float32:
-                waveform = waveform.astype(np.float32)
             sd.play(waveform, samplerate=sample_rate)
             sd.wait()
         except Exception as e:
             self.logger.error(f"Audio playback failed: {e}")
+
+
+################################################################
 
 
 if __name__ == "__main__":
