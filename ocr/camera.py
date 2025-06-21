@@ -2,6 +2,18 @@ import cv2
 import pytesseract
 from PIL import  Image
 
+def ocr(frame):
+    # Convert BGR to RGB for pytesseract
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    # Convert to PIL Image       
+    pil_img = Image.fromarray(rgb)
+
+    # Run OCR
+    text = pytesseract.image_to_string(pil_img)
+
+    return text
+
 # Open the default webcam (0 = default camera)
 cap = cv2.VideoCapture(0)
 
@@ -23,6 +35,9 @@ while True:
     # Exit loop when 'q' is pressed
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+    print(ocr(frame))
+
+
 
 # Release resources
 cap.release()
