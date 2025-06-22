@@ -14,11 +14,6 @@ class Language:
         object_args: Tuple[str, int, int, int, int, float],
         ocr_args: Tuple[str, bool]
     ) -> None:
-        """
-        Detect object → put text on queue,
-        Read OCR → put text on queue.
-        Nothing is returned.
-        """
         object_text = self.detector.detect(*object_args)
         self.queue.put(object_text)
 
