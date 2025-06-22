@@ -65,7 +65,7 @@ class CommandScheduler:
 
     def get_frame(self) -> Optional[MatLike]:
         ret, frame = self.cap.read()
-        if ret:
+        if not ret:
             return None
         return frame
 
