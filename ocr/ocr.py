@@ -22,10 +22,12 @@ class OCR:
             self.reader = easyocr.Reader(self.lang, gpu=True)
         except Exception as e:
             self.reader = easyocr.Reader(self.lang, gpu=False)
+        self.logger.info("Loaded model")
 
     def read(self, frame):
         text = self.perform_ocr(frame)
         if text:
+            self.logger.info(f'OCR Reads: {text.strip()}')
             return text.strip()
 
     def perform_ocr(self, frame):

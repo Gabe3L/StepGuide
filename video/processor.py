@@ -31,21 +31,6 @@ class VideoProcessor:
 
         return frame
 
-    def most_confident_box(
-        self,
-        boxes: NDArray[np.int32],
-        confidences: NDArray[np.float32],
-        class_ids: NDArray[np.int32],
-    ) -> Optional[Tuple[np.ndarray, int]]:
-        if not confidences:
-            return None
-
-        max_index = np.argmax(confidences)
-        box = boxes[max_index]
-        label = class_ids[max_index]
-
-        return box, label
-
     def process_video_feed(self, frame: MatLike) -> bool:
         if frame is None:
             return False

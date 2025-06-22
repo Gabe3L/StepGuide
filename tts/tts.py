@@ -27,10 +27,14 @@ class TextToSpeech:
             model_name="tts_models/en/ljspeech/tacotron2-DDC", progress_bar=True
         ).to(device)
 
+        self.logger.info("TTS Model loaded!")
+
     def speak(self, text):
         try:
             if not text.strip().endswith((".", "?", "!")):
                 text += "."
+
+            self.logger.info(f'Speaking: {text.strip()}')
 
             waveform_list = self.tts.tts(text)
             waveform = np.array(waveform_list, dtype=np.float32)
