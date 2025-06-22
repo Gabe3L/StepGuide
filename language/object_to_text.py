@@ -107,6 +107,11 @@ class ObjectToText:
 
     def get_text(self, class_id, bbox) -> Optional[str]:
         details = self.get_details(class_id, bbox)
+        if not details:
+            return None
+        
+        horizontal, vertical = details
+        return f'A {class_id} is located {vertical.lower()} and {horizontal.lower()}'
 
     def get_details(self, name: str, bbox: List[int]) -> Optional[Tuple[str, str]]:        
         min_width = float('inf')
