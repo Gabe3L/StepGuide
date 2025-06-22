@@ -11,7 +11,7 @@ from video.display import VideoDisplay
 ###############################################################
 
 ROTATE_IMAGE: bool = False
-FLIP_IMAGE_HORIZONTALLY: bool = False
+FLIP_IMAGE_HORIZONTALLY: bool = True
 FLIP_IMAGE_VERTICALLY: bool = False
 
 ###############################################################
@@ -47,7 +47,7 @@ class VideoProcessor:
         return box, label
 
     def process_video_feed(self, frame: MatLike) -> bool:
-        if not frame:
+        if frame is None:
             return False
 
         frame = self.transform_frame(frame)
@@ -63,21 +63,3 @@ class VideoProcessor:
             return False
 
         return True
-
-
-###############################################################
-
-if __name__ == "__main__":
-    vp = VideoProcessor()
-    cap = cv2.VideoCapture(0)
-    if cap is not None and cap.isOpened():
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
-            if not vp.process_video_feed(frame):
-                break
-
-    if cap:
-        cap.release()
-    cv2.destroyAllWindows()

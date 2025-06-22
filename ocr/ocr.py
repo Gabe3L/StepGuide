@@ -31,18 +31,3 @@ class OCR:
     def perform_ocr(self, frame):
         results = self.reader.readtext(frame)
         return "\n".join([text for _, text, conf in results if float(conf) > 0.4])
-
-
-########################################################################################
-
-
-if __name__ == "__main__":
-    try:
-        cap = cv2.VideoCapture(0)
-        ocr = OCR()
-        frame = cap.read()
-        ocr.read(frame)
-        if cap:
-            cap.release()
-    except Exception as e:
-        print(f"Error: {e}")
