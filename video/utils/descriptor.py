@@ -5,16 +5,15 @@ from typing import Dict
 horizontal_descriptors: Dict = {
     0: "Left",
     160: "Slightly left",
-    280: "Center",
-    360: "Slightly right",
-    480: "Right"
+    320: "Center",
+    480: "Slightly right",
+    640: "Right"
 
 }
 vertical_descriptors: Dict = {
     0: "Up",
     120: "Slightly up", 
-    200: "Center",
-    280: "Slightly down",
+    240: "Center",
     360: "Slightly down",
     480: "Down"
 
