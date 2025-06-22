@@ -9,10 +9,10 @@ class ThreadManager:
         self.threads: Dict[str, Thread] = {}
         self.stop_event: Optional[Event] = None
 
-    def start_all_threads(self, stop_event: Event, speech_queue) -> None:
+    def start_all_threads(self, stop_event: Event) -> None:
         self.stop_event = stop_event
         for name in self.worker_funcs.keys():
-            self.start_thread(name, speech_queue)
+            self.start_thread(name)
 
     def close_all_threads(self) -> None:
         if self.stop_event:
@@ -25,7 +25,7 @@ class ThreadManager:
         self.threads.clear()
         self.logger.info("All threads stopped.")
 
-    def start_thread(self, name: str, speech_queue: Queue) -> None:
+    def start_thread(self, name: str) -> None:
         if name in self.threads and self.threads[name].is_alive():
             self.logger.info(f"Thread '{name}' is already running.")
             return
@@ -39,7 +39,7 @@ class ThreadManager:
             self.logger.error(f"No such thread worker defined for: '{name}'")
             return
 
-        thread = Thread(target=target, args=(self.stop_event, speech_queue), name=name)
+        thread = Thread(target=target, args=(self.stop_event,), name=name)
         thread.start()
         self.threads[name] = thread
         self.logger.info(f"Thread '{name}' started.")

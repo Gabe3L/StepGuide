@@ -10,6 +10,7 @@ from cv2.typing import MatLike
 from ocr.ocr import OCR
 from tts.tts import TextToSpeech
 from video.processor import VideoProcessor
+from language.language import Language
 from thread_manager import ThreadManager
 
 from logs.logging_setup import setup_logger
@@ -23,42 +24,80 @@ class CommandScheduler:
         self.ocr = OCR()
         self.object_detection = VideoProcessor()
         self.tts = TextToSpeech()
+        self.language = Language()
+
+        self.frame_queue = Queue(maxsize=5)
+        self.ocr_raw_queue = Queue()
+        self.detection_raw_queue = Queue()
+        self.humanization_queue = Queue()
+        self.speech_queue = Queue()
+
         self.workers: Dict[str, Callable] = {
             "frame_capture": self.frame_capture,
             "ocr": self.ocr_handler,
             "tts": self.speech_handler,
+            "humanizer": self.humanizer_handler,
             "object_detection": self.object_detection_handler
         }
         self.cap = cv2.VideoCapture(0)
 
-    def ocr_handler(self, stop_event: Event, frame_queue: Queue, speech_queue: Queue) -> None:
+    def ocr_handler(self, stop_event: Event) -> None:
         while not stop_event.is_set():
             try:
-                frame = frame_queue.get(timeout=0.5)
+                frame = self.frame_queue.get(timeout=0.5)
                 if frame is not None:
                     text = self.ocr.read(frame)
                     if text:
-                        speech_queue.put(text)
+                        self.ocr_raw_queue.put(text)
             except Empty:
                 pass
             except Exception as e:
                 self.logger.error(f'An error occured with ocr processing: {e}')
 
-    def speech_handler(self, stop_event: Event, speech_queue: Queue) -> None:
+    def humanizer_handler(self, stop_event: Event) -> None:
         while not stop_event.is_set():
             try:
-                request: Optional[str] = speech_queue.get(timeout=0.5)
-                if request:
-                    self.tts.speak(request)
+                try:
+                    class_id, bbox = self.detection_raw_queue.get_nowait()
+                    description = self.language.process_object(class_id, bbox, self.speech_queue)
+                    if description:
+                        self.humanization_queue.put(description)
+                except Empty:
+                    pass
+                
+                try:
+                    text = self.ocr_raw_queue.get_nowait()
+                    description = self.language.process_ocr(text, self.speech_queue)
+                    if description:
+                        self.humanization_queue.put(description)
+                except Empty:
+                    pass
+
+                try:
+                    human_text = self.humanization_queue.get_nowait()
+                    self.speech_queue.put(human_text)
+                except Empty:
+                    pass
+
+                time.sleep(0.01)
+            except Exception as e:
+                self.logger.error(f"Error in humanizer: {e}")
+
+    def speech_handler(self, stop_event: Event) -> None:
+        while not stop_event.is_set():
+            try:
+                text = self.speech_queue.get(timeout=0.5)
+                if text:
+                    self.tts.speak(text)
             except Empty:
                 pass
             except Exception as e:
                 self.logger.error(f'An error occured with speech processing: {e}')
 
-    def object_detection_handler(self, stop_event: Event, frame_queue: Queue) -> None:
+    def object_detection_handler(self, stop_event: Event) -> None:
         while not stop_event.is_set():
             try:
-                frame = frame_queue.get(timeout=0.5)
+                frame = self.frame_queue.get(timeout=0.5)
                 if frame is not None:
                     self.object_detection.process_video_feed(frame)
             except Empty:
@@ -66,12 +105,12 @@ class CommandScheduler:
             except Exception as e:
                 self.logger.error(f'An error occured with object detection handling processing: {e}')
 
-    def frame_capture(self, stop_event: Event, frame_queue: Queue) -> None:
+    def frame_capture(self, stop_event: Event) -> None:
         while not stop_event.is_set():
             frame = self.get_frame()
             if frame is not None:
-                if frame_queue.qsize() < 2:
-                    frame_queue.put(frame)
+                if self.frame_queue.qsize() < 2:
+                    self.frame_queue.put(frame)
             time.sleep(0.01)
 
     def get_frame(self) -> Optional[MatLike]:
@@ -82,10 +121,8 @@ class CommandScheduler:
 
     def mainloop(self) -> None:
         stop_event = Event()
-        speech_queue: Queue = Queue()
         thread_manager = ThreadManager(self.workers, self.logger)
-        
-        thread_manager.start_all_threads(stop_event, speech_queue)
+        thread_manager.start_all_threads(stop_event)
 
         self.logger.info("System running. Press Ctrl+C to stop.")
         try:

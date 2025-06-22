@@ -18,17 +18,15 @@ class OCR:
         file_name = os.path.splitext(os.path.basename(__file__))[0]
         self.logger = setup_logger(file_name)
         self.lang = ["en"]
-        self.reader = easyocr.Reader(self.lang, gpu=False)
+        try:
+            self.reader = easyocr.Reader(self.lang, gpu=True)
+        except Exception as e:
+            self.reader = easyocr.Reader(self.lang, gpu=False)
 
     def read(self, frame):
-        while True:
-            text = self.perform_ocr(frame)
-            if text:
-                print(text.strip())
-
-            user_input = input("Press Enter to test, or type 'q' to quit: ")
-            if user_input.lower() == "q":
-                break
+        text = self.perform_ocr(frame)
+        if text:
+            return text.strip()
 
     def perform_ocr(self, frame):
         results = self.reader.readtext(frame)
