@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, List
 from queue import Queue
 
 from ocr_to_text import OCR
@@ -10,12 +10,8 @@ class Language:
         self.detector = ObjectToText() 
         self.reader = OCR()
 
-    def process(
-        self,
-        object_args: Tuple[str, int, int, int, int, float],
-        ocr_args: Tuple[str, bool]
-    ) -> None:
-        object_text = self.detector.detect(*object_args)
+    def process(self, class_id: str, bbox: List[int], ocr_args: Tuple[str, bool]) -> None:
+        object_text = self.detector.get_text(class_id, bbox)
         if object_text:
             self.speech_queue.put(object_text)
 

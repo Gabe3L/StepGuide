@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 
 CONFIDENCE_THRESHOLD: float = 0.5
 
@@ -105,14 +105,17 @@ class ObjectToText:
     def __init__(self):
         pass
 
-    def detect(
-        self, name: str, x: int, y: int, w: int, h: int, confidence: float
-    ) -> Optional[str]:
-        if confidence < CONFIDENCE_THRESHOLD:
-            return None
-        
+    def get_text(self, class_id, bbox) -> Optional[str]:
+        details = self.get_details(class_id, bbox)
+
+    def get_details(self, name: str, bbox: List[int]) -> Optional[Tuple[str, str]]:        
         min_width = float('inf')
         min_height = float('inf')
+
+        x = bbox[2]
+        y = bbox[3]
+        width = bbox[2]
+        height = bbox[3]
 
         for object in OBJECT_SIZES:
             if object["name"] != name:
@@ -122,13 +125,10 @@ class ObjectToText:
             min_height = object["height"]
             break
 
-        if (w <= min_width) or (h <= min_height):
+        if (width <= min_width) or (height <= min_height):
             return None
 
-        horiz, vert = self.get_descriptor(x, HORIZONTAL_DESCRIPTORS), self.get_descriptor(
-            y, VERTICAL_DESCRIPTORS
-        )
-        return f"The {name} is located {vert.lower()}, {horiz.lower()}"
+        return (self.get_descriptor(x, HORIZONTAL_DESCRIPTORS), self.get_descriptor(y, VERTICAL_DESCRIPTORS))
 
     def get_descriptor(self, value: int, descriptor_map: Dict[int, str]) -> str:
         keys = sorted(descriptor_map.keys())
