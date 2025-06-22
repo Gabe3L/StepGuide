@@ -52,7 +52,9 @@ class CommandScheduler:
     def object_detection_handler(self, stop_event: Event, speech_queue: Queue) -> None:
         while not stop_event.is_set():
             try:
-                self.object_detection.process_video_feed(self.get_frame())
+                frame = self.get_frame()
+                if frame:
+                    self.object_detection.process_video_feed(frame)
             except Empty:
                 pass
             except Exception as e:
