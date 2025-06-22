@@ -33,11 +33,13 @@ class CommandScheduler:
     def ocr_handler(self, stop_event: Event, speech_queue: Queue) -> None:
         while not stop_event.is_set():
             try:
-                request: Optional[str] = self.ocr.read(self.get_frame())
+                frame = self.get_frame()
+                if frame:
+                    request: Optional[str] = self.ocr.read(frame)
             except Empty:
                 pass
             except Exception as e:
-                self.logger.error(f'An error occured with audio processing: {e}')
+                self.logger.error(f'An error occured with ocr processing: {e}')
 
     def speech_handler(self, stop_event: Event, speech_queue: Queue) -> None:
         while not stop_event.is_set():
@@ -48,7 +50,7 @@ class CommandScheduler:
             except Empty:
                 pass
             except Exception as e:
-                self.logger.error(f'An error occured with audio processing: {e}')
+                self.logger.error(f'An error occured with speech processing: {e}')
 
     def object_detection_handler(self, stop_event: Event, speech_queue: Queue) -> None:
         while not stop_event.is_set():
@@ -59,7 +61,7 @@ class CommandScheduler:
             except Empty:
                 pass
             except Exception as e:
-                self.logger.error(f'An error occured with audio processing: {e}')
+                self.logger.error(f'An error occured with object detection handling processing: {e}')
 
     def get_frame(self) -> Optional[MatLike]:
         ret, frame = self.cap.read()
