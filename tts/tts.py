@@ -46,11 +46,3 @@ class TextToSpeech:
             sd.wait()
         except Exception as e:
             self.logger.error(f"Audio playback failed: {e}")
-
-
-################################################################
-
-
-if __name__ == "__main__":
-    text_to_speech = TextToSpeech()
-    text_to_speech.speak("The step guide service has initialized!")
