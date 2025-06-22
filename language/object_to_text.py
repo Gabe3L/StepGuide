@@ -1,6 +1,8 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 
-object_sizes = {
+CONFIDENCE_THRESHOLD: float = 0.5
+
+OBJECT_SIZES = {
     0: {"name": "person", "width": 60, "height": 160},
     1: {"name": "bicycle", "width": 150, "height": 100},
     2: {"name": "car", "width": 180, "height": 120},
@@ -99,20 +101,19 @@ VERTICAL_DESCRIPTORS: Dict = {
     480: "Down"
 }
 
-def get_descriptor(value: int, descriptor_map: Dict[int, str]) -> str:
-    keys = sorted(descriptor_map.keys())
-    for i in range(len(keys)):
-        if value <= keys[i]:
-            return descriptor_map[keys[i]]
-    return descriptor_map[keys[-1]]
-
-class ObjectDetector:
-    def __init__(self, min_confidence: float = 0.5):
-        self.min_confidence = min_confidence
+class ObjectToText:
+    def __init__(self):
         self._last_size = {"w": 0, "h": 0}
 
     def classify(self, x: int, y: int) -> Tuple[str, str]:
-        return get_descriptor(x, HORIZONTAL_DESCRIPTORS), get_descriptor(y, VERTICAL_DESCRIPTORS)
+        return self._get_descriptor(x, HORIZONTAL_DESCRIPTORS), self._get_descriptor(y, VERTICAL_DESCRIPTORS)
+
+    def _get_descriptor(value: int, descriptor_map: Dict[int, str]) -> str:
+        keys = sorted(descriptor_map.keys())
+        for i in range(len(keys)):
+            if value <= keys[i]:
+                return descriptor_map[keys[i]]
+        return descriptor_map[keys[-1]]
 
     def detect(
         self,
@@ -121,12 +122,11 @@ class ObjectDetector:
         y: int,
         w: int,
         h: int,
-        confidence: float,
-    ) -> str:
-        if confidence < self.min_confidence:
-            return ""
+        confidence: float
+    ) -> Optional[str]:
+        if confidence < CONFIDENCE_THRESHOLD:
+            return None
         
-        #Since the w we are given is the w of the thing form the center
         if w <= self._last_size["w"] or h <= self._last_size["h"]: 
             return ""
         
