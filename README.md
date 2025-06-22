@@ -55,9 +55,9 @@ StepGuide is a real-time AI assistant that:
 Made with at SpurHacks 2025 by:
 
 - Gabe Lynch
-- Alex
+- Alex Wang
 - Owen Ramsey
-- Yasin
+- Yasen Behiri
 
 ---
 
