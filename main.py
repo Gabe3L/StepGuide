@@ -24,18 +24,21 @@ class CommandScheduler:
         self.object_detection = VideoProcessor()
         self.tts = TextToSpeech()
         self.workers: Dict[str, Callable] = {
+            "frame_capture": self.frame_capture,
             "ocr": self.ocr_handler,
             "tts": self.speech_handler,
             "object_detection": self.object_detection_handler
         }
         self.cap = cv2.VideoCapture(0)
 
-    def ocr_handler(self, stop_event: Event, speech_queue: Queue) -> None:
+    def ocr_handler(self, stop_event: Event, frame_queue: Queue, speech_queue: Queue) -> None:
         while not stop_event.is_set():
             try:
-                frame = self.get_frame()
-                if frame:
-                    request: Optional[str] = self.ocr.read(frame)
+                frame = frame_queue.get(timeout=0.5)
+                if frame is not None:
+                    text = self.ocr.read(frame)
+                    if text:
+                        speech_queue.put(text)
             except Empty:
                 pass
             except Exception as e:
@@ -52,16 +55,24 @@ class CommandScheduler:
             except Exception as e:
                 self.logger.error(f'An error occured with speech processing: {e}')
 
-    def object_detection_handler(self, stop_event: Event, speech_queue: Queue) -> None:
+    def object_detection_handler(self, stop_event: Event, frame_queue: Queue) -> None:
         while not stop_event.is_set():
             try:
-                frame = self.get_frame()
-                if frame:
+                frame = frame_queue.get(timeout=0.5)
+                if frame is not None:
                     self.object_detection.process_video_feed(frame)
             except Empty:
                 pass
             except Exception as e:
                 self.logger.error(f'An error occured with object detection handling processing: {e}')
+
+    def frame_capture(self, stop_event: Event, frame_queue: Queue) -> None:
+        while not stop_event.is_set():
+            frame = self.get_frame()
+            if frame is not None:
+                if frame_queue.qsize() < 2:
+                    frame_queue.put(frame)
+            time.sleep(0.01)
 
     def get_frame(self) -> Optional[MatLike]:
         ret, frame = self.cap.read()
