@@ -19,8 +19,7 @@ class YOLODetector:
         self.logger = setup_logger(file_name)
         self.device: torch.device = torch.device(
             'cuda' if torch.cuda.is_available() else 'cpu')
-        self.model: YOLO = YOLO("video/train/dataset.yaml" if torch.cuda.is_available(
-        ) else "yolo11n.pt", task='detect')
+        self.model: YOLO = YOLO("video/weights/yolo11n.onnx", task='detect')
         self.logger.info("Loaded CV model.")
 
     def detect(self, frame: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
