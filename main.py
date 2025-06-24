@@ -9,6 +9,7 @@ from cv2.typing import MatLike
 
 from ocr.ocr import OCR
 from tts.tts import TextToSpeech
+from stt.stt import SpeechToText
 from video.processor import VideoProcessor
 from language.language import Language
 from thread_manager import ThreadManager
@@ -21,21 +22,24 @@ class CommandScheduler:
     def __init__(self) -> None:
         file_name = os.path.splitext(os.path.basename(__file__))[0]
         self.logger = setup_logger(file_name)
+
         self.ocr = OCR()
         self.object_detection = VideoProcessor()
         self.tts = TextToSpeech()
+        self.stt = SpeechToText()
         self.language = Language()
 
-        self.frame_queue = Queue(maxsize=5)
-        self.ocr_raw_queue = Queue()
-        self.detection_raw_queue = Queue()
-        self.humanization_queue = Queue()
-        self.speech_queue = Queue()
+        self.frame_queue = Queue(maxsize=1)
+        self.ocr_raw_queue = Queue(maxsize=3)
+        self.detection_raw_queue = Queue(maxsize=3)
+        self.humanization_queue = Queue(maxsize=3)
+        self.speech_queue = Queue(maxsize=3)
 
         self.workers: Dict[str, Callable] = {
             "frame_capture": self.frame_capture,
             "ocr": self.ocr_handler,
-            "tts": self.speech_handler,
+            "tts": self.tts_handler,
+            "stt": self.stt_handler,
             "humanizer": self.humanizer_handler,
             "object_detection": self.object_detection_handler
         }
@@ -83,16 +87,32 @@ class CommandScheduler:
             except Exception as e:
                 self.logger.error(f"Error in humanizer: {e}")
 
-    def speech_handler(self, stop_event: Event) -> None:
+    def stt_handler(self, stop_event: Event) -> None:
+        while not stop_event.is_set():
+            try:
+                text = self.stt.process_audio()
+                if text:
+                    if "laptop" in text.lower():
+                        self.laptop_mode = True
+                        self.tts.speak("Navigating to your laptop.")
+            except Empty:
+                pass
+            except Exception as e:
+                self.logger.error(f'An error occured with stt processing: {e}')
+
+    def tts_handler(self, stop_event: Event) -> None:
         while not stop_event.is_set():
             try:
                 text = self.speech_queue.get(timeout=0.5)
+
                 if text:
+                    self.logger.info(f"Speaking text: {text}")
                     self.tts.speak(text)
             except Empty:
                 pass
             except Exception as e:
-                self.logger.error(f'An error occured with speech processing: {e}')
+                self.logger.error(f'An error occured with tts processing: {e}')
+
 
     def object_detection_handler(self, stop_event: Event) -> None:
         while not stop_event.is_set():
