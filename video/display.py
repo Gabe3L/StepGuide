@@ -1,7 +1,5 @@
 import cv2
 import numpy as np
-from numpy.typing import NDArray
-from typing import List
 
 ###############################################################
 

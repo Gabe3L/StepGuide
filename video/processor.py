@@ -1,7 +1,3 @@
-import numpy as np
-from numpy.typing import NDArray
-from typing import Optional, Tuple
-
 import cv2
 from cv2.typing import MatLike
 
@@ -31,7 +27,7 @@ class VideoProcessor:
 
         return frame
 
-    def process_video_feed(self, frame: MatLike) -> bool:
+    def process_frame(self, frame: MatLike) -> bool:
         if frame is None:
             return False
 

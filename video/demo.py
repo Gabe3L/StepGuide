@@ -1,6 +1,7 @@
 import cv2
 from video.processor import VideoProcessor
 
+###############################################################
 
 if __name__ == "__main__":
     vp = VideoProcessor()
@@ -10,7 +11,7 @@ if __name__ == "__main__":
             ret, frame = cap.read()
             if not ret:
                 break
-            if not vp.process_video_feed(frame):
+            if not vp.process_frame(frame):
                 break
 
     if cap:

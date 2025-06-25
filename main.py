@@ -18,6 +18,7 @@ from logs.logging_setup import setup_logger
 
 ###############################################################
 
+
 class CommandScheduler:
     def __init__(self) -> None:
         file_name = os.path.splitext(os.path.basename(__file__))[0]
@@ -63,15 +64,17 @@ class CommandScheduler:
             try:
                 try:
                     class_id, bbox = self.detection_raw_queue.get_nowait()
-                    description = self.language.process_object(class_id, bbox, self.speech_queue)
+                    description = self.language.process_object(
+                        class_id, bbox, self.speech_queue)
                     if description:
                         self.humanization_queue.put(description)
                 except Empty:
                     pass
-                
+
                 try:
                     text = self.ocr_raw_queue.get_nowait()
-                    description = self.language.process_ocr(text, self.speech_queue)
+                    description = self.language.process_ocr(
+                        text, self.speech_queue)
                     if description:
                         self.humanization_queue.put(description)
                 except Empty:
@@ -113,17 +116,17 @@ class CommandScheduler:
             except Exception as e:
                 self.logger.error(f'An error occured with tts processing: {e}')
 
-
     def object_detection_handler(self, stop_event: Event) -> None:
         while not stop_event.is_set():
             try:
                 frame = self.frame_queue.get(timeout=0.5)
                 if frame is not None:
-                    self.object_detection.process_video_feed(frame)
+                    self.object_detection.process_frame(frame)
             except Empty:
                 pass
             except Exception as e:
-                self.logger.error(f'An error occured with object detection handling processing: {e}')
+                self.logger.error(
+                    f'An error occured with object detection handling processing: {e}')
 
     def frame_capture(self, stop_event: Event) -> None:
         while not stop_event.is_set():
@@ -158,6 +161,7 @@ class CommandScheduler:
         thread_manager.close_all_threads()
 
 ###############################################################
+
 
 if __name__ == '__main__':
     cs = CommandScheduler()
