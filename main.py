@@ -10,8 +10,9 @@ from cv2.typing import MatLike
 from ocr.ocr import OCR
 from tts.tts import TextToSpeech
 from stt.stt import SpeechToText
-from video.processor import VideoProcessor
+from hands.hands import HandTracker
 from language.language import Language
+from video.processor import VideoProcessor
 from thread_manager import ThreadManager
 
 from logs.logging_setup import setup_logger
@@ -25,10 +26,11 @@ class CommandScheduler:
         self.logger = setup_logger(file_name)
 
         self.ocr = OCR()
-        self.object_detection = VideoProcessor()
         self.tts = TextToSpeech()
         self.stt = SpeechToText()
         self.language = Language()
+        self.hand_tracker = HandTracker()
+        self.object_detection = VideoProcessor()
 
         self.frame_queue = Queue(maxsize=1)
         self.ocr_raw_queue = Queue(maxsize=3)
@@ -45,6 +47,15 @@ class CommandScheduler:
             "object_detection": self.object_detection_handler
         }
         self.cap = cv2.VideoCapture(0)
+
+    def hand_handler(self, stop_event: Event) -> None:
+        while not stop_event.is_set():
+            try:
+                frame = self.frame_queue.get(timeout=0.5)
+                if frame is not None:
+                    self.hand_tracker.process_frame(frame)
+            except Exception as e:
+                print(f"Error: {e}")
 
     def ocr_handler(self, stop_event: Event) -> None:
         while not stop_event.is_set():

@@ -1,11 +1,11 @@
 import cv2
-from hands.hands import HandTracking
+from hands.hands import HandTracker
 
 ################################################################
 
 if __name__ == "__main__":
     try:
-        hands = HandTracking()
+        hand_tracker = HandTracker()
         cap = cv2.VideoCapture(0)
         if not cap.isOpened():
             raise RuntimeError("Failed to open camera.")
@@ -15,10 +15,11 @@ if __name__ == "__main__":
             if not ret:
                 raise RuntimeError("Failed to capture frame from camera.")
             
-            frame = hands.process_frame(frame)
+            results = hand_tracker.process_frame(frame)
+            frame = hand_tracker.annotate_frame(frame, results)
 
             cv2.imshow('Hand Tracking', frame)
-            if cv2.waitKey(5) & 0xFF == 27:
+            if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
         cap.release()
         cv2.destroyAllWindows()

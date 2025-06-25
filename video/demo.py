@@ -11,9 +11,12 @@ if __name__ == "__main__":
             ret, frame = cap.read()
             if not ret:
                 break
+            
             if not vp.process_frame(frame):
                 break
 
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
     if cap:
         cap.release()
     cv2.destroyAllWindows()

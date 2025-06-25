@@ -17,5 +17,8 @@ if __name__ == "__main__":
             results = ocr.read(frame)
             if results:
                 print(f'\n\n{results}')
+            
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
     except Exception as e:
         print(f"Error: {e}")

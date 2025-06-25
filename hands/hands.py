@@ -3,7 +3,7 @@ import mediapipe as mp
 
 ################################################################
 
-class HandTracking:
+class HandTracker:
     def __init__(self) -> None:
         self.mp_hands = mp.solutions.hands # type: ignore
         self.hands = self.mp_hands.Hands(static_image_mode=False,
@@ -32,13 +32,18 @@ class HandTracking:
         results = self.hands.process(frame)
 
         hand_landmarks_data = self._get_hand_landmarks(results, frame.shape)
-
         if hand_landmarks_data:
             for hand in hand_landmarks_data:
                 print(hand)
 
+        return results
+
+    def annotate_frame(self, frame, results):
         if results.multi_hand_landmarks:
             for hand_landmarks in results.multi_hand_landmarks:
-                self.mp_drawing.draw_landmarks(frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
-
+                self.mp_drawing.draw_landmarks(
+                    frame,
+                    hand_landmarks,
+                    self.mp_hands.HAND_CONNECTIONS
+                )
         return frame
